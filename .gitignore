@@ -1,0 +1,23 @@
+# node
+node_modules
+npm-debug.log*
+pnpm-lock.yaml
+yarn.lock
+
+# env
+.env
+server/.env
+web/.env
+
+# prisma sqlite
+server/prisma/*.db
+server/prisma/*.db-journal
+
+# build
+server/dist
+web/.next
+.next
+dist
+
+# misc
+.DS_Store
