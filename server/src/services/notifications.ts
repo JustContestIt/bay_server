@@ -3,16 +3,16 @@ type NotificationType = 'LIKE' | 'COMMENT' | 'FOLLOW';
 import { io } from '../socket.js';
 
 export async function createNotification(opts: {
-  userId: number; // кому
-  actorId: number; // кто
+  userId: string; // кому
+  actorId: string; // кто
   type: NotificationType;
-  postId?: number;
+  postId?: string;
 }) {
   if (opts.userId === opts.actorId) return null; // не уведомляем самого себя
   const notif = await prisma.notification.create({
     data: {
-      userId: opts.userId,
-      actorId: opts.actorId,
+      userId: String(opts.userId),
+      actorId: String(opts.actorId),
       type: opts.type,
       postId: opts.postId,
     },

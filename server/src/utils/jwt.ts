@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
-import { env } from '../env';
+import { env } from "../env.js";
 
-export type JwtPayload = { id: number };
+export type JwtPayload = { id: string };
 
 export interface SignTokenOptions {
   expiresIn: number;

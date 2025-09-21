@@ -17,18 +17,21 @@ export const postsRouter = Router();
 postsRouter.post('/posts', requireAuth, async (req, res, next) => {
   try {
     const { content } = CreatePostSchema.parse(req.body);
+    console.log(content);
     const post = await prisma.post.create({
       data: {
         content,
-        authorId: req.user!.id,
+        authorId: String(req.user!.id),
       },
       include: {
         author: true,
         _count: { select: { likes: true, comments: true } },
       },
     });
+    console.log('Created post:', post);
     return res.json(serializePost(post, req.user!.id));
   } catch (e) {
+    console.log('Error creating post:', e);
     next(e);
   }
 });
@@ -60,14 +63,16 @@ postsRouter.get('/posts', optionalAuth, async (req, res, next) => {
       : {};
 
     const posts = await prisma.post.findMany({
-      where,
+      where: q
+        ? { content: { contains: q } }
+        : undefined,
       orderBy: { id: 'desc' },
       take: limit,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      ...(cursor ? { cursor: { id: String(cursor) }, skip: 1 } : {}),
       include: {
         author: true,
         likes: req.user
-          ? { where: { userId: req.user.id }, select: { id: true } }
+          ? { where: { userId: String(req.user.id) }, select: { id: true } }
           : false,
         _count: { select: { likes: true, comments: true } },
       },
@@ -81,6 +86,7 @@ postsRouter.get('/posts', optionalAuth, async (req, res, next) => {
       nextCursor,
     });
   } catch (e) {
+    console.log('Error fetching posts:', e);
     next(e);
   }
 });
@@ -90,32 +96,35 @@ postsRouter.get('/posts', optionalAuth, async (req, res, next) => {
  */
 postsRouter.post('/posts/:id/like', requireAuth, async (req, res, next) => {
   try {
-    const postId = Number(req.params.id);
-    if (!Number.isInteger(postId) || postId <= 0)
+    const postId = req.params.id;
+    console.log(postId);
+    if (postId.length === 0)
       return res.status(400).json({ error: 'Invalid post id' });
 
     const existing = await prisma.like.findUnique({
-      where: { userId_postId: { userId: req.user!.id, postId } },
+      where: { userId_postId: { userId: String(req.user!.id), postId: String(postId) } },
       include: { post: { select: { authorId: true } } },
     });
+    console.log(`Found existing like:`, existing);
 
     if (existing) {
       await prisma.like.delete({ where: { id: existing.id } });
       return res.json({ liked: false });
     } else {
       const like = await prisma.like.create({
-        data: { userId: req.user!.id, postId },
+        data: { userId: String(req.user!.id), postId: String(postId) },
         include: { post: { select: { authorId: true } } },
       });
       await createNotification({
         userId: like.post.authorId,
-        actorId: req.user!.id,
+        actorId: String(req.user!.id),
         type: 'LIKE',
         postId,
       });
       return res.json({ liked: true });
     }
   } catch (e) {
+    console.log('Error toggling like:', e);
     next(e);
   }
 });
@@ -125,23 +134,24 @@ postsRouter.post('/posts/:id/like', requireAuth, async (req, res, next) => {
  */
 postsRouter.post('/posts/:id/comments', requireAuth, async (req, res, next) => {
   try {
-    const postId = Number(req.params.id);
-    if (!Number.isInteger(postId) || postId <= 0)
+    const postId = req.params.id;
+    console.log(postId);
+    if (postId.length === 0)
       return res.status(400).json({ error: 'Invalid post id' });
 
     const { content } = CommentSchema.parse(req.body);
     const comment = await prisma.comment.create({
       data: {
         content,
-        postId,
-        authorId: req.user!.id,
+        postId: String(postId),
+        authorId: String(req.user!.id),
       },
       include: { author: true, post: { select: { authorId: true } } },
     });
 
     await createNotification({
       userId: comment.post.authorId,
-      actorId: req.user!.id,
+      actorId: String(req.user!.id),
       type: 'COMMENT',
       postId,
     });
@@ -150,13 +160,14 @@ postsRouter.post('/posts/:id/comments', requireAuth, async (req, res, next) => {
       id: comment.id,
       content: comment.content,
       author: {
-        id: comment.author.id,
+        id: comment.authorId,
         username: comment.author.username,
         displayName: comment.author.displayName,
       },
       createdAt: comment.createdAt,
     });
   } catch (e) {
+    console.log('Error creating comment:', e);
     next(e);
   }
 });

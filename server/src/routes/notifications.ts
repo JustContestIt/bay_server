@@ -13,7 +13,7 @@ notificationsRouter.get(
   async (req, res, next) => {
     try {
       const notifs = await prisma.notification.findMany({
-        where: { userId: req.user!.id },
+        where: { userId: String(req.user!.id) },
         orderBy: { createdAt: 'desc' },
         take: 50,
         include: {
@@ -31,6 +31,7 @@ notificationsRouter.get(
         }))
       );
     } catch (e) {
+      console.log('Error fetching notifications:', e);
       next(e);
     }
   }

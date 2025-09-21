@@ -21,7 +21,7 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-// API routes (prefix /api)
+// API routes
 app.use('/api', authRouter);
 app.use('/api', postsRouter);
 app.use('/api', usersRouter);

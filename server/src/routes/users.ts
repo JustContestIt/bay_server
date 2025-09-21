@@ -18,8 +18,8 @@ usersRouter.post('/users/:id/follow', requireAuth, async (req, res, next) => {
     const existing = await prisma.follow.findUnique({
       where: {
         followerId_followingId: {
-          followerId: req.user!.id,
-          followingId: targetId,
+          followerId: String(req.user!.id),
+          followingId: String(targetId),
         },
       },
     });
@@ -29,11 +29,12 @@ usersRouter.post('/users/:id/follow', requireAuth, async (req, res, next) => {
       return res.json({ following: false });
     } else {
       await prisma.follow.create({
-        data: { followerId: req.user!.id, followingId: targetId },
+        data: { followerId: String(req.user!.id), followingId: String(targetId) },
       });
       return res.json({ following: true });
     }
   } catch (e) {
+    console.log('Error toggling follow:', e);
     next(e);
   }
 });
